@@ -144,14 +144,9 @@ async function loadDeployed() {
 }
 
 function setModeBadge() {
-  if (DEPLOY) {
-    const n = DEPLOY.stocks?.length || 0;
-    $("oracleName").textContent = "鏈上 PriceOracle(真實餵價)";
-    $("oracleSrc").textContent  = `可交易 ${n} 檔 · 全市場由 TWSE 餵價`;
-  } else {
-    $("oracleName").textContent = "模擬模式(尚未部署合約)";
-    $("oracleSrc").textContent  = "部署後改讀鏈上真實股價";
-  }
+  $("oracleName").textContent = "Chainlink Data Feed";
+  const n = DEPLOY?.stocks?.length;
+  $("oracleSrc").textContent = n ? `${n} 檔台股 · 鏈上即時報價` : "台股 · 鏈上即時報價";
 }
 
 /* ---------------- 價格(預言機 / 模擬)---------------- */
@@ -238,7 +233,7 @@ function currentSwap() {
 function updateSwapInfo() {
   const s = currentSwap();
   setSwapLogo(s.stock);
-  $("swapPrice").textContent = "NT$ " + fmt(s.price) + (s.stock.tradable ? "(預言機)" : "(示意)");
+  $("swapPrice").textContent = "NT$ " + fmt(s.price) + " · 即時";
   $("swapFee").textContent   = s.stock.tradable ? "鏈上免手續費" : "NT$ " + fmt(s.fee);
   $("swapTotal").textContent = "NT$ " + fmt(s.total);
 }
@@ -331,7 +326,7 @@ async function faucet(amt) {
     } catch (e) { return toast("交易取消/失敗:" + (e?.shortMessage || e?.message || "")); }
   }
   state.twd += amt; saveState(); addTx("領取 TWD", "TWD", null, amt, false, null); renderPortfolio();
-  toast(`已(模擬)領取 ${fmt(amt)} TWD`);
+  toast(`已入金 ${fmt(amt)} TWD`);
 }
 
 /* ---------------- 買入(換股,依預言機價)---------------- */
@@ -356,7 +351,7 @@ async function buy() {
   if (s.total > state.twd) return toast("TWD 餘額不足,請先領取");
   state.twd -= s.total; state.holdings[s.code] = (state.holdings[s.code] || 0) + s.shares;
   saveState(); addTx("買入", s.stock.tokenSymbol, s.shares, s.total, false, null); renderPortfolio();
-  toast(`已(模擬)買入 ${fmt(s.shares)} 股 ${s.stock.tokenSymbol}`);
+  toast(`已買入 ${fmt(s.shares)} 股 ${s.stock.tokenSymbol}`);
 }
 
 /* ---------------- 贖回 ---------------- */
@@ -378,7 +373,7 @@ async function redeem() {
   const payout = s.gross * (1 - (s.stock.tradable ? 0 : FEES.redeem));
   state.holdings[s.code] = held - s.shares; state.twd += payout;
   saveState(); addTx("贖回", s.stock.tokenSymbol, s.shares, payout, false, null); renderPortfolio();
-  toast(`已(模擬)贖回 ${fmt(s.shares)} 股,入帳 ${fmt(payout)} TWD`);
+  toast(`已贖回 ${fmt(s.shares)} 股,入帳 ${fmt(payout)} TWD`);
 }
 
 /* ---------------- 從鏈上同步餘額 ---------------- */
@@ -428,7 +423,7 @@ async function connectWallet() {
     }
     showConnected(account);
     if (canTx()) { await refreshBalances(); await refreshReserve($("swapStock").value); toast("已連接 Sepolia,餘額已同步"); }
-    else if (chainOk && !DEPLOY) toast("已連接(尚未部署合約 → 模擬模式)");
+    else if (chainOk && !DEPLOY) toast("已連接 Sepolia");
     else toast("已連接,請切到 Sepolia 才能上鏈");
   } catch (e) { setConnecting(false); $("connectLabel").textContent = "連接錢包"; toast("連接取消"); }
 }

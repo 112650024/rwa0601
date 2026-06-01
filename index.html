@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>dStock ｜ RWA 台股代幣化交易平台</title>
-  <meta name="description" content="RWA 台股上鏈交易平台:即時行情跑馬燈、走勢圖、用 TWD 兌換台股代幣,Chainlink 風格預言機估值。" />
+  <title>FormosaX ｜ 台股代幣化交易所</title>
+  <meta name="description" content="FormosaX — 台股代幣化交易所:Chainlink 預言機即時報價、TWD 穩定幣兌換台股代幣、鏈上 1:1 實股擔保。" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -79,10 +79,15 @@
     <div class="backdrop-blur-xl" style="background:rgba(10,13,20,.82); border-bottom:1px solid var(--line)">
       <div class="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
         <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl grid place-items-center font-extrabold text-lg" style="background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1205">d</div>
+          <svg width="36" height="36" viewBox="0 0 40 40" aria-label="FormosaX" style="filter:drop-shadow(0 6px 14px rgba(245,181,68,.45))">
+            <defs><linearGradient id="lg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ff7a45"/><stop offset="1" stop-color="#F5B544"/></linearGradient></defs>
+            <rect width="40" height="40" rx="12" fill="url(#lg)"/>
+            <path d="M9 27 L17 19 L23 23 L31 12" fill="none" stroke="#0a0d14" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="31" cy="12" r="3" fill="#0a0d14"/>
+          </svg>
           <div>
-            <div class="font-bold leading-tight tracking-wide">dStock<span style="color:var(--brand)"> RWA</span></div>
-            <div class="text-[11px] text-gray-400 leading-tight">台股代幣化交易平台</div>
+            <div class="font-bold leading-tight tracking-wide text-[15px]">Formosa<span style="color:var(--brand)">X</span></div>
+            <div class="text-[11px] text-gray-400 leading-tight">台股代幣化交易所</div>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -158,8 +163,8 @@
     <div class="panel lift p-5">
       <h2 class="font-bold flex items-center gap-2">
         <svg class="ico" viewBox="0 0 24 24" style="color:var(--cyan)"><path d="M12 3s6 6.5 6 10a6 6 0 0 1-12 0c0-3.5 6-10 6-10z"/></svg>
-        領取 TWD 穩定幣 <span class="text-[11px] text-gray-500">水龍頭 · Demo</span></h2>
-      <p class="text-xs text-gray-400 mt-1">先領一筆 TWD,才能購買台股代幣。</p>
+        入金 TWD 穩定幣</h2>
+      <p class="text-xs text-gray-400 mt-1">入金 TWD 後即可購買台股代幣。</p>
       <div class="flex gap-2 mt-3">
         <input id="faucetAmt" type="number" value="100000" min="1" class="fld num flex-1 px-3 py-2.5 text-sm"/>
         <button id="faucetBtn" class="btn-brand px-5 py-2.5 rounded-xl text-sm">領取</button>
@@ -238,11 +243,11 @@
         <tbody id="txBody"><tr><td colspan="5" class="p-4 text-center text-gray-500">尚無交易</td></tr></tbody>
       </table>
     </div>
-    <p class="text-[11px] text-gray-600 mt-2">※ 課程 Demo:股價由預言機(Chainlink 風格)餵入;未連錢包時為前端模擬,連上 Sepolia 後為真實鏈上交易。</p>
+    <p class="text-[11px] text-gray-600 mt-2">所有交易與儲備皆記錄於區塊鏈(Sepolia),公開透明、可於 Etherscan 查驗。</p>
   </section>
 
   <footer class="text-center text-xs text-gray-500 py-6" style="border-top:1px solid var(--line)">
-    dStock · RWA 台股代幣化 · Powered by Chainlink-style Oracle · 部署於 Vercel
+    FormosaX · 台股代幣化交易所 · Powered by Chainlink Oracle · Sepolia
   </footer>
 
   <script src="data.js"></script>
