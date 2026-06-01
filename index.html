@@ -67,7 +67,7 @@
         <span class="pulse-dot text-brand">●</span>
         預言機 Oracle:<span class="text-gray-200">Chainlink(Demo 模擬餵價)</span>
         ·最後更新 <span id="oracleTime" class="text-gray-200 tabular-nums">--:--:--</span>
-        <span class="ml-auto hidden sm:inline">資料來源:模擬 · 僅供展示</span>
+        <span class="ml-auto hidden sm:inline">dTSMC 鏈上固定價 NT$1,100 · 其餘為模擬</span>
       </div>
     </div>
   </header>
@@ -146,6 +146,22 @@
         <button id="buyBtn" class="bg-brand text-ink font-bold px-4 py-2 rounded-lg text-sm">買入(鑄造)</button>
         <button id="redeemBtn" class="border border-line hover:bg-panel font-bold px-4 py-2 rounded-lg text-sm">贖回(賣出)</button>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ 儲備證明 Proof of Reserve ============ -->
+  <section class="max-w-6xl mx-auto px-4 mt-4">
+    <div class="card rounded-2xl p-4">
+      <div class="flex items-center justify-between">
+        <h2 class="font-bold flex items-center gap-2">🛡️ 儲備證明 <span class="text-[11px] text-gray-500">Proof of Reserve · dTSMC(鏈上)</span></h2>
+        <span id="ratioBadge" class="text-xs px-2 py-1 rounded-full border border-line text-gray-400">未連線</span>
+      </div>
+      <div class="grid grid-cols-3 gap-3 mt-3 text-center text-sm">
+        <div><div class="text-xs text-gray-400">dTSMC 總發行</div><div id="rvSupply" class="font-bold tabular-nums">—</div></div>
+        <div><div class="text-xs text-gray-400">TWD 儲備</div><div id="rvReserve" class="font-bold tabular-nums">—</div></div>
+        <div><div class="text-xs text-gray-400">抵押率</div><div id="rvRatio" class="font-bold tabular-nums">—</div></div>
+      </div>
+      <p class="text-[11px] text-gray-500 mt-2">連接 Sepolia 後顯示鏈上即時數據(getReserveStatus / getCollateralRatio),證明 dTSMC 由 TWD 儲備足額擔保。</p>
     </div>
   </section>
 

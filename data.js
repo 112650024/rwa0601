@@ -1,41 +1,52 @@
 /* =====================================================================
- * data.js — 資料層(台股清單、模擬股價、合約設定)
+ * data.js — 資料層(合約設定、台股清單)
  * ---------------------------------------------------------------------
- * 注意:本檔案的股價為「模擬資料」,用來假裝預言機(Oracle)已連上。
- * 真實串接(Chainlink Functions 抓台積電股價)列為未來升級,不在本次範圍。
+ * 旗艦標的 dTSMC 為「真實合約」(已部署 Sepolia),連錢包後真正上鏈;
+ * 其餘台股無合約,為模擬示意。價格:dTSMC 為合約固定價 1100 TWD/股,
+ * 其餘為模擬漂動。
  * ===================================================================== */
 
-/* ---- 已部署於 Sepolia 測試網的合約位址(來自簡報 Demo 頁) ---- */
+/* ---- 已部署於 Sepolia 測試網的合約位址 ---- */
 const CONTRACTS = {
-  // 旗艦標的:台積電代幣 tTSMC
-  TSMC: "0x70ca9f7173DB7a57984D2A78996A0548DDfb967a",
-  // 平台計價穩定幣 TWD(類穩定幣,1 TWD ≈ 新台幣 1 元)
-  TWD:  "0x176DCdd62Aa233132DE2E7b670BE47D70417d1ae",
+  DTSMC: "0x70ca9f7173DB7a57984D2A78996A0548DDfb967a", // dTSMC_RWA(Digitized TSMC)
+  TWD:   "0x176DCdd62Aa233132DE2E7b670BE47D70417d1ae", // MockTWD
   chainId: 11155111,            // Sepolia
   chainHex: "0xaa36a7",
   explorer: "https://sepolia.etherscan.io",
+  decimals: { TWD: 6, DTSMC: 18 },   // ← 與合約一致(TWD 6 位、dTSMC 18 位)
 };
 
-/* ---- 精簡 ABI(僅取前端會用到的函式;真實呼叫時會 try/catch 容錯) ---- */
-const ERC20_ABI = [
+/* dTSMC 合約寫死的價格:1100 TWD = 1 股(TSMC_PRICE = 1100) */
+const ONCHAIN_PRICE = 1100;
+
+/* ---- 真實 ABI(對應使用者 Solidity)---- */
+const TWD_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function decimals() view returns (uint8)",
-  "function approve(address spender, uint256 amount) returns (bool)",
-  "function transfer(address to, uint256 amount) returns (bool)",
+  "function symbol() view returns (string)",
+  "function allowance(address,address) view returns (uint256)",
+  "function approve(address,uint256) returns (bool)",
+  "function mint(uint256)",
+  "function mintTWD(uint256 twdWhole)",   // 傳整數(顆),合約內部 ×1e6
 ];
-// TWD 水龍頭與 TSMC 鑄造/贖回(函式名沿用 Remix Demo 的命名,實際以合約為準)
-const TWD_ABI  = ERC20_ABI.concat(["function mintTWD(uint256 amount)"]);
-const TSMC_ABI = ERC20_ABI.concat([
-  "function mint(uint256 amount)",
-  "function redeem(uint256 amount)",
-]);
+const DTSMC_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)",
+  "function mint(uint256 twdRaw)",        // 需先 approve;twdRaw 為 6 位原始量
+  "function redeem(uint256 dtsmcRaw)",    // dtsmcRaw 為 18 位原始量
+  "function previewMint(uint256) view returns (uint256)",
+  "function previewRedeem(uint256) view returns (uint256)",
+  "function getReserveStatus() view returns (uint256,uint256,uint256)",
+  "function getCollateralRatio() view returns (uint256)",
+  "function getTsmcPrice() view returns (uint256)",
+];
 
-/* ---- 台股清單(模擬資料)---------------------------------------------
- * price：以新台幣計價的「每股」模擬價
- * 旗艦 2330 有真實合約(tTSMC);其餘為示意,前端以模擬代幣呈現概念
- * ------------------------------------------------------------------- */
+/* ---- 台股清單 ----
+ * 2330 為真實上鏈標的(token=dTSMC、deployed=true、固定價 1100);其餘示意。
+ */
 const TW_STOCKS = [
-  { code: "2330", name: "台積電",     token: "tTSMC", price: 1015, deployed: true  },
+  { code: "2330", name: "台積電",     token: "dTSMC", price: ONCHAIN_PRICE, deployed: true  },
   { code: "2317", name: "鴻海",       token: "tHHPG", price:  205, deployed: false },
   { code: "2454", name: "聯發科",     token: "tMTK",  price: 1280, deployed: false },
   { code: "0050", name: "元大台灣50", token: "t0050", price:  190, deployed: false },
@@ -52,17 +63,5 @@ const TW_STOCKS = [
   { code: "2891", name: "中信金",     token: "tCTBC", price:   39, deployed: false },
 ];
 
-/* ---- 平台費率(對應簡報「商業模式 / 獲利」)---- */
-const FEES = {
-  mint:   0.003,   // 鑄造手續費 0.3%
-  redeem: 0.003,   // 贖回手續費 0.3%
-};
-
-/* 提供查詢工具 */
-function findStock(query) {
-  const q = String(query || "").trim().toLowerCase();
-  if (!q) return null;
-  return TW_STOCKS.find(
-    (s) => s.code === q || s.name.includes(q) || s.token.toLowerCase().includes(q)
-  );
-}
+/* 平台費率(僅模擬模式呈現;真實合約目前未收手續費) */
+const FEES = { mint: 0.003, redeem: 0.003 };
