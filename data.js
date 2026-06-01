@@ -63,3 +63,19 @@ const TW_CATALOG = [
 
 /* 平台費率(僅模擬模式呈現;真實合約目前不收手續費) */
 const FEES = { mint: 0.003, redeem: 0.003 };
+
+/* 公司官網網域 → 用來抓品牌 logo(Clearbit);抓不到時前端自動退回字母色塊 */
+const LOGO_DOMAIN = {
+  "2330": "tsmc.com",        "2317": "honhai.com",      "2454": "mediatek.com",
+  "2308": "deltaww.com",     "2303": "umc.com",         "2412": "cht.com.tw",
+  "2882": "cathayholdings.com","2881": "fubon.com",      "2603": "evergreen-marine.com",
+  "3008": "largan.com.tw",   "2891": "ctbcbank.com",    "2002": "csc.com.tw",
+  "3037": "unimicron.com",   "2357": "asus.com",        "2382": "quantatw.com",
+  "3231": "wistron.com",     "2379": "realtek.com",     "1303": "npc.com.tw",
+  "1301": "fpc.com.tw",      "2886": "megaholdings.com.tw","2884": "esunbank.com.tw",
+  "2609": "yangming.com",    "2615": "wanhai.com",      "2207": "hotaimotor.com.tw",
+  "2912": "7-11.com.tw",
+};
+/* 每檔的色塊漸層(logo 抓不到時的底色),用代號雜湊挑色 */
+const LOGO_TINT = ["#2f6bff,#1b3a8f","#F5B544,#b8761a","#37d6c4,#1f7a70","#ff7a45,#a83c14",
+  "#a77bff,#5b3aa8","#ff6f91,#a83a55","#46e08a,#1f8a52","#7aa6ff,#3a5bb0"];

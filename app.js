@@ -20,6 +20,23 @@ let pie = null;
 const canTx = () => !!(signer && chainOk && DEPLOY);
 const tokenInfo = (code) => DEPLOY?.stocks?.find((x) => x.code === code) || null;
 
+/* 品牌 logo:Clearbit → Google favicon → 字母色塊(三層退回,確保有東西顯示) */
+function tintFor(code) { let h = 0; for (const c of code) h = (h * 31 + c.charCodeAt(0)) >>> 0; return LOGO_TINT[h % LOGO_TINT.length]; }
+function logoImg(code) {
+  const dom = LOGO_DOMAIN[code]; if (!dom) return "";
+  const gf = `https://www.google.com/s2/favicons?sz=64&domain=${dom}`;
+  return `<img loading="lazy" src="https://logo.clearbit.com/${dom}?size=80" ` +
+    `onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${gf}'}else{this.remove()}">`;
+}
+function logoHtml(code, name, size = 40) {
+  return `<div class="logo" style="width:${size}px;height:${size}px;background:linear-gradient(135deg,${tintFor(code)})"><span>${(name || code).slice(0, 2)}</span>${logoImg(code)}</div>`;
+}
+function setSwapLogo(stock) {
+  const el = $("swapLogo"); if (!el) return;
+  el.style.background = `linear-gradient(135deg,${tintFor(stock.code)})`;
+  el.innerHTML = `<span>${(stock.name || stock.code).slice(0, 2)}</span>` + logoImg(stock.code);
+}
+
 /* ---------------- 狀態(模擬模式用)---------------- */
 let state = loadState();
 function loadState() {
@@ -103,11 +120,19 @@ async function refreshPrices() {
   paintPrices(); renderPortfolio(); updateSwapInfo();
 }
 function paintPrices() {
-  document.querySelectorAll("[data-price]").forEach((el) => (el.textContent = "NT$ " + fmt(live[el.dataset.price].price)));
+  document.querySelectorAll("[data-price]").forEach((el) => {
+    const L = live[el.dataset.price];
+    const txt = "NT$ " + fmt(L.price);
+    if (el.textContent !== txt) {
+      el.textContent = txt;
+      const cls = L.price >= L.prev ? "flash-up" : "flash-down";
+      el.classList.remove("flash-up", "flash-down"); void el.offsetWidth; el.classList.add(cls);
+    }
+  });
   document.querySelectorAll("[data-pct]").forEach((el) => {
     const p = live[el.dataset.pct].pct;
     el.textContent = (p >= 0 ? "▲ " : "▼ ") + Math.abs(p).toFixed(2) + "%";
-    el.className = "text-xs tabular-nums " + (p >= 0 ? "up" : "down");
+    el.className = "text-xs num " + (p >= 0 ? "up" : "down");
   });
 }
 
@@ -117,16 +142,17 @@ function renderMarket(filter = "") {
   const list = STOCKS.filter((s) => !q || s.code.includes(q) || s.name.toLowerCase().includes(q) || s.tokenSymbol.toLowerCase().includes(q));
   $("noResult").classList.toggle("hidden", list.length > 0);
   $("market").innerHTML = list.map((s) => `
-    <div class="card rounded-2xl p-4">
-      <div class="flex items-start justify-between">
-        <div>
-          <div class="font-bold">${s.name} <span class="text-gray-500 text-xs">${s.code}</span></div>
-          <div class="text-[11px] ${s.tradable ? "text-brand" : "text-gray-500"} font-mono">${s.tokenSymbol}${s.tradable ? " · 可交易" : " · 僅報價"}</div>
+    <div class="glass lift rounded-2xl p-4">
+      <div class="flex items-start gap-3">
+        ${logoHtml(s.code, s.name, 38)}
+        <div class="min-w-0 flex-1">
+          <div class="font-bold truncate">${s.name} <span class="text-gray-500 text-xs num">${s.code}</span></div>
+          <div class="text-[11px] num" ${s.tradable ? 'style="color:var(--brand)"' : 'class="text-gray-500"'}>${s.tokenSymbol}${s.tradable ? " · 可交易" : " · 僅報價"}</div>
         </div>
-        <span data-pct="${s.code}" class="text-xs tabular-nums"></span>
+        <span data-pct="${s.code}" class="text-xs num"></span>
       </div>
-      <div data-price="${s.code}" class="text-2xl font-black mt-2 tabular-nums">NT$ ${fmt(live[s.code].price)}</div>
-      <button data-buy="${s.code}" class="mt-3 w-full ${s.tradable ? "bg-brand/90 hover:bg-brand text-ink" : "border border-line text-gray-300 hover:bg-panel"} font-bold py-2 rounded-lg text-sm">
+      <div data-price="${s.code}" class="num text-2xl font-bold mt-3">NT$ ${fmt(live[s.code].price)}</div>
+      <button data-buy="${s.code}" class="mt-3 w-full ${s.tradable ? "btn-brand" : "btn-ghost text-gray-300"} font-bold py-2 rounded-xl text-sm">
         ${s.tradable ? "交易 " + s.tokenSymbol : "查看"}
       </button>
     </div>`).join("");
@@ -154,6 +180,7 @@ function currentSwap() {
 }
 function updateSwapInfo() {
   const s = currentSwap();
+  setSwapLogo(s.stock);
   $("swapPrice").textContent = "NT$ " + fmt(s.price) + (s.stock.tradable ? "(預言機)" : "(示意)");
   $("swapFee").textContent   = s.stock.tradable ? "鏈上免手續費" : "NT$ " + fmt(s.fee);
   $("swapTotal").textContent = "NT$ " + fmt(s.total);
@@ -311,8 +338,25 @@ async function refreshBalances() {
 }
 
 /* ---------------- 連接錢包 ---------------- */
+function setConnecting(on) {
+  $("connectSpin").classList.toggle("hidden", !on);
+  $("connectIco").classList.toggle("hidden", on);
+  $("connectBtn").disabled = on;
+  $("connectBtn").style.opacity = on ? ".85" : "1";
+  if (on) $("connectLabel").textContent = "連線中…";
+}
+function showConnected(addr) {
+  setConnecting(false);
+  $("connectIco").classList.add("hidden");
+  $("connectLabel").textContent = addr.slice(0, 6) + "…" + addr.slice(-4);
+  const badge = $("netBadge"); badge.classList.remove("hidden");
+  badge.textContent = chainOk ? "● Sepolia" : "⚠ 請切換 Sepolia";
+  badge.style.color = chainOk ? "var(--cyan)" : "#ffb84d";
+  requestAnimationFrame(() => (badge.style.opacity = "1"));
+}
 async function connectWallet() {
   if (!window.ethereum) return toast("請先安裝 MetaMask(未連錢包也能用模擬模式)");
+  setConnecting(true);
   try {
     const bp = new ethers.BrowserProvider(window.ethereum);
     await bp.send("eth_requestAccounts", []);
@@ -324,14 +368,11 @@ async function connectWallet() {
       try { await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN.hex }] }); chainOk = true; }
       catch (_) {}
     }
-    $("connectBtn").textContent = account.slice(0, 6) + "…" + account.slice(-4);
-    const badge = $("netBadge"); badge.classList.remove("hidden");
-    badge.textContent = chainOk ? "● Sepolia" : "⚠ 請切換 Sepolia";
-    badge.classList.toggle("text-brand", chainOk);
+    showConnected(account);
     if (canTx()) { await refreshBalances(); await refreshReserve($("swapStock").value); toast("已連接 Sepolia,餘額已同步"); }
-    else if (chainOk && !DEPLOY) toast("已連接,但尚未部署合約(模擬模式)");
+    else if (chainOk && !DEPLOY) toast("已連接(尚未部署合約 → 模擬模式)");
     else toast("已連接,請切到 Sepolia 才能上鏈");
-  } catch (e) { toast("連接取消"); }
+  } catch (e) { setConnecting(false); $("connectLabel").textContent = "連接錢包"; toast("連接取消"); }
 }
 
 /* ---------------- 提示 ---------------- */
