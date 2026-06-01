@@ -1,67 +1,65 @@
 /* =====================================================================
- * data.js — 資料層(合約設定、台股清單)
+ * data.js — 資料層(升級版:預言機 + 工廠多台股)
  * ---------------------------------------------------------------------
- * 旗艦標的 dTSMC 為「真實合約」(已部署 Sepolia),連錢包後真正上鏈;
- * 其餘台股無合約,為模擬示意。價格:dTSMC 為合約固定價 1100 TWD/股,
- * 其餘為模擬漂動。
+ * 價格來源:部署後由 deployed.json 提供合約位址,前端從「鏈上 PriceOracle」
+ *           讀真實台股價;尚未部署(無 deployed.json)時退回模擬,確保可展示。
  * ===================================================================== */
 
-/* ---- 已部署於 Sepolia 測試網的合約位址 ---- */
-const CONTRACTS = {
-  DTSMC: "0x70ca9f7173DB7a57984D2A78996A0548DDfb967a", // dTSMC_RWA(Digitized TSMC)
-  TWD:   "0x176DCdd62Aa233132DE2E7b670BE47D70417d1ae", // MockTWD
-  chainId: 11155111,            // Sepolia
-  chainHex: "0xaa36a7",
-  explorer: "https://sepolia.etherscan.io",
-  decimals: { TWD: 6, DTSMC: 18 },   // ← 與合約一致(TWD 6 位、dTSMC 18 位)
-};
+const PUBLIC_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
+const CHAIN = { id: 11155111, hex: "0xaa36a7", explorer: "https://sepolia.etherscan.io" };
+const DEC = { TWD: 6, TOKEN: 18, PRICE: 2 };   // 與合約一致
 
-/* dTSMC 合約寫死的價格:1100 TWD = 1 股(TSMC_PRICE = 1100) */
-const ONCHAIN_PRICE = 1100;
-
-/* ---- 真實 ABI(對應使用者 Solidity)---- */
+/* ---- 精簡 ABI ---- */
+const ORACLE_ABI = [
+  "function latestPrice(bytes32) view returns (int256,uint8,uint64)",
+  "function hasPrice(bytes32) view returns (bool)",
+];
 const TWD_ABI = [
   "function balanceOf(address) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)",
   "function allowance(address,address) view returns (uint256)",
   "function approve(address,uint256) returns (bool)",
-  "function mint(uint256)",
-  "function mintTWD(uint256 twdWhole)",   // 傳整數(顆),合約內部 ×1e6
+  "function mintTWD(uint256)",
 ];
-const DTSMC_ABI = [
+const STOCK_ABI = [
   "function balanceOf(address) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)",
-  "function mint(uint256 twdRaw)",        // 需先 approve;twdRaw 為 6 位原始量
-  "function redeem(uint256 dtsmcRaw)",    // dtsmcRaw 為 18 位原始量
+  "function mint(uint256)",
+  "function redeem(uint256)",
   "function previewMint(uint256) view returns (uint256)",
-  "function previewRedeem(uint256) view returns (uint256)",
+  "function pricePerShare() view returns (uint256)",
   "function getReserveStatus() view returns (uint256,uint256,uint256)",
   "function getCollateralRatio() view returns (uint256)",
-  "function getTsmcPrice() view returns (uint256)",
 ];
 
-/* ---- 台股清單 ----
- * 2330 為真實上鏈標的(token=dTSMC、deployed=true、固定價 1100);其餘示意。
- */
-const TW_STOCKS = [
-  { code: "2330", name: "台積電",     token: "dTSMC", price: ONCHAIN_PRICE, deployed: true  },
-  { code: "2317", name: "鴻海",       token: "tHHPG", price:  205, deployed: false },
-  { code: "2454", name: "聯發科",     token: "tMTK",  price: 1280, deployed: false },
-  { code: "0050", name: "元大台灣50", token: "t0050", price:  190, deployed: false },
-  { code: "2412", name: "中華電",     token: "tCHT",  price:  126, deployed: false },
-  { code: "2308", name: "台達電",     token: "tDLT",  price:  402, deployed: false },
-  { code: "2303", name: "聯電",       token: "tUMC",  price:   54, deployed: false },
-  { code: "2882", name: "國泰金",     token: "tCAT",  price:   66, deployed: false },
-  { code: "2881", name: "富邦金",     token: "tFBN",  price:   92, deployed: false },
-  { code: "3008", name: "大立光",     token: "tLAR",  price: 2520, deployed: false },
-  { code: "2603", name: "長榮",       token: "tEVG",  price:  195, deployed: false },
-  { code: "1301", name: "台塑",       token: "tFPC",  price:   72, deployed: false },
-  { code: "2002", name: "中鋼",       token: "tCSC",  price:   28, deployed: false },
-  { code: "3037", name: "欣興",       token: "tUNI",  price:  165, deployed: false },
-  { code: "2891", name: "中信金",     token: "tCTBC", price:   39, deployed: false },
+/* ---- 台股名稱目錄(顯示 / 搜尋用;fallback 為無預言機價時的示意價)----
+ * 旗艦與精選會在 deployed.json 標為「可交易」;其餘為示意。 */
+const TW_CATALOG = [
+  { code: "2330", name: "台積電",     fallback: 2355 },
+  { code: "2317", name: "鴻海",       fallback: 205  },
+  { code: "2454", name: "聯發科",     fallback: 1280 },
+  { code: "2308", name: "台達電",     fallback: 402  },
+  { code: "2303", name: "聯電",       fallback: 54   },
+  { code: "2412", name: "中華電",     fallback: 126  },
+  { code: "2882", name: "國泰金",     fallback: 66   },
+  { code: "2881", name: "富邦金",     fallback: 92   },
+  { code: "2603", name: "長榮",       fallback: 195  },
+  { code: "3008", name: "大立光",     fallback: 2520 },
+  { code: "0050", name: "元大台灣50", fallback: 190  },
+  { code: "2891", name: "中信金",     fallback: 39   },
+  { code: "2002", name: "中鋼",       fallback: 28   },
+  { code: "3037", name: "欣興",       fallback: 165  },
+  { code: "2357", name: "華碩",       fallback: 620  },
+  { code: "2382", name: "廣達",       fallback: 300  },
+  { code: "3231", name: "緯創",       fallback: 130  },
+  { code: "2379", name: "瑞昱",       fallback: 600  },
+  { code: "1303", name: "南亞",       fallback: 48   },
+  { code: "1301", name: "台塑",       fallback: 72   },
+  { code: "2886", name: "兆豐金",     fallback: 40   },
+  { code: "2884", name: "玉山金",     fallback: 28   },
+  { code: "2609", name: "陽明",       fallback: 75   },
+  { code: "2615", name: "萬海",       fallback: 95   },
+  { code: "2207", name: "和泰車",     fallback: 620  },
+  { code: "2912", name: "統一超",     fallback: 280  },
 ];
 
-/* 平台費率(僅模擬模式呈現;真實合約目前未收手續費) */
+/* 平台費率(僅模擬模式呈現;真實合約目前不收手續費) */
 const FEES = { mint: 0.003, redeem: 0.003 };
