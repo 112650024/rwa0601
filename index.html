@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tTSMC ｜ RWA 台股代幣化平台</title>
+  <meta name="description" content="RWA 現實世界資產代幣化 — 台股上鏈 Demo:領 TWD、用 TWD 換台積電代幣 tTSMC,預言機即時估值。" />
+
+  <!-- Tailwind (CDN，零 build，適合丟 Vercel 靜態站) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- ethers v6 (UMD)，連 MetaMask 與合約 -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <!-- Chart.js，畫投組圓餅圖 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand:  "#F5B544",   // 主橘(沿用簡報風格)
+            ink:    "#0c0d10",   // 深底
+            panel:  "#16181d",   // 卡片
+            line:   "#2a2d35",
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { background:#0c0d10; }
+    /* 漲跌色 */
+    .up   { color:#ff5a5a; }   /* 台股慣例:漲紅 */
+    .down { color:#3ad17a; }   /* 跌綠 */
+    .card { background:#16181d; border:1px solid #2a2d35; }
+    .pulse-dot { animation:pulse 1.6s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+    ::-webkit-scrollbar{width:10px;height:10px}
+    ::-webkit-scrollbar-thumb{background:#2a2d35;border-radius:8px}
+  </style>
+</head>
+
+<body class="text-gray-100 antialiased min-h-screen">
+
+  <!-- ============ 頂部導覽 ============ -->
+  <header class="sticky top-0 z-30 backdrop-blur bg-ink/80 border-b border-line">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-lg bg-brand text-ink font-black grid place-items-center text-lg">₮</div>
+        <div>
+          <div class="font-bold leading-tight">tTSMC <span class="text-brand">RWA</span></div>
+          <div class="text-[11px] text-gray-400 leading-tight">台股代幣化平台 · Demo</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="netBadge" class="hidden sm:inline-flex text-[11px] px-2 py-1 rounded-full border border-line text-gray-400"></span>
+        <button id="connectBtn"
+          class="bg-brand hover:brightness-95 text-ink font-bold text-sm px-4 py-2 rounded-lg transition">
+          連接錢包
+        </button>
+      </div>
+    </div>
+    <!-- 預言機狀態列 -->
+    <div class="bg-panel/60 border-t border-line">
+      <div class="max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-2 text-[12px] text-gray-400">
+        <span class="pulse-dot text-brand">●</span>
+        預言機 Oracle:<span class="text-gray-200">Chainlink(Demo 模擬餵價)</span>
+        ·最後更新 <span id="oracleTime" class="text-gray-200 tabular-nums">--:--:--</span>
+        <span class="ml-auto hidden sm:inline">資料來源:模擬 · 僅供展示</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ Hero ============ -->
+  <section class="max-w-6xl mx-auto px-4 pt-8 pb-4">
+    <h1 class="text-2xl sm:text-3xl font-black">
+      把<span class="text-brand">台股</span>變成可 24/7、可碎片化的鏈上資產
+    </h1>
+    <p class="text-gray-400 text-sm mt-2 max-w-2xl">
+      用平台穩定幣 <b class="text-gray-200">TWD</b> 一鍵兌換台積電代幣 <b class="text-brand">tTSMC</b>,
+      預言機即時估值、鏈上 1:1 實股擔保。小額即可參與、跨境免開戶。
+    </p>
+  </section>
+
+  <!-- ============ 投組總覽 ============ -->
+  <section class="max-w-6xl mx-auto px-4 grid md:grid-cols-3 gap-3">
+    <div class="card rounded-2xl p-4 md:col-span-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xs text-gray-400">投組總價值(預言機估值)</div>
+          <div id="totalValue" class="text-3xl font-black mt-1 tabular-nums">NT$ 0</div>
+        </div>
+        <div class="text-right text-sm">
+          <div class="text-gray-400 text-xs">TWD 餘額</div>
+          <div id="twdBal" class="font-bold tabular-nums">0</div>
+        </div>
+      </div>
+      <div id="holdingsList" class="mt-4 space-y-2 text-sm"></div>
+    </div>
+    <div class="card rounded-2xl p-4 grid place-items-center">
+      <div class="text-xs text-gray-400 self-start">資產配置</div>
+      <canvas id="pie" width="220" height="220"></canvas>
+    </div>
+  </section>
+
+  <!-- ============ 操作區:領 TWD / 換股 ============ -->
+  <section class="max-w-6xl mx-auto px-4 mt-4 grid md:grid-cols-2 gap-3">
+    <!-- 領 TWD -->
+    <div class="card rounded-2xl p-5">
+      <h2 class="font-bold flex items-center gap-2">💧 領取 TWD 穩定幣 <span class="text-[11px] text-gray-500">(水龍頭 / Demo)</span></h2>
+      <p class="text-xs text-gray-400 mt-1">先領一筆 TWD,才能購買台股代幣。</p>
+      <div class="flex gap-2 mt-3">
+        <input id="faucetAmt" type="number" value="100000" min="1"
+          class="flex-1 bg-ink border border-line rounded-lg px-3 py-2 text-sm tabular-nums" />
+        <button id="faucetBtn" class="bg-brand text-ink font-bold px-4 py-2 rounded-lg text-sm">領取</button>
+      </div>
+      <div class="flex gap-2 mt-2 text-xs">
+        <button class="quick-twd px-2 py-1 rounded border border-line text-gray-400" data-v="50000">+5萬</button>
+        <button class="quick-twd px-2 py-1 rounded border border-line text-gray-400" data-v="100000">+10萬</button>
+        <button class="quick-twd px-2 py-1 rounded border border-line text-gray-400" data-v="500000">+50萬</button>
+      </div>
+    </div>
+
+    <!-- 換股 -->
+    <div class="card rounded-2xl p-5">
+      <h2 class="font-bold flex items-center gap-2">🔁 兌換台股代幣</h2>
+      <div class="mt-3 grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs text-gray-400">標的</label>
+          <select id="swapStock" class="w-full bg-ink border border-line rounded-lg px-2 py-2 text-sm mt-1"></select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400">股數</label>
+          <input id="swapShares" type="number" value="10" min="0" step="1"
+            class="w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm tabular-nums mt-1" />
+        </div>
+      </div>
+      <div class="text-xs text-gray-400 mt-3 space-y-1">
+        <div class="flex justify-between"><span>單價(預言機)</span><span id="swapPrice" class="text-gray-200 tabular-nums">—</span></div>
+        <div class="flex justify-between"><span>手續費 0.3%</span><span id="swapFee" class="text-gray-200 tabular-nums">—</span></div>
+        <div class="flex justify-between font-bold text-sm border-t border-line pt-1 mt-1">
+          <span class="text-gray-300">需付 / 可得</span><span id="swapTotal" class="text-brand tabular-nums">—</span></div>
+      </div>
+      <div class="grid grid-cols-2 gap-2 mt-3">
+        <button id="buyBtn" class="bg-brand text-ink font-bold px-4 py-2 rounded-lg text-sm">買入(鑄造)</button>
+        <button id="redeemBtn" class="border border-line hover:bg-panel font-bold px-4 py-2 rounded-lg text-sm">贖回(賣出)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 台股市場 + 搜尋 ============ -->
+  <section class="max-w-6xl mx-auto px-4 mt-6">
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <h2 class="font-bold text-lg">台股市場</h2>
+      <div class="relative flex-1 max-w-sm">
+        <input id="search" placeholder="搜尋股票(代號 / 名稱,如 2330、鴻海)"
+          class="w-full bg-panel border border-line rounded-lg pl-9 pr-3 py-2 text-sm" />
+        <span class="absolute left-3 top-2.5 text-gray-500">🔍</span>
+      </div>
+    </div>
+    <div id="market" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3"></div>
+    <p id="noResult" class="hidden text-sm text-gray-500 mt-3">找不到符合的台股。</p>
+  </section>
+
+  <!-- ============ 交易紀錄 ============ -->
+  <section class="max-w-6xl mx-auto px-4 mt-6 mb-12">
+    <h2 class="font-bold text-lg">交易紀錄 <span class="text-[11px] text-gray-500">(鏈上透明 · 可查驗)</span></h2>
+    <div class="card rounded-2xl mt-3 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="text-gray-400 text-xs bg-panel">
+          <tr><th class="text-left p-3">時間</th><th class="text-left p-3">動作</th>
+              <th class="text-right p-3">數量</th><th class="text-right p-3 hidden sm:table-cell">金額(TWD)</th>
+              <th class="text-right p-3">憑證</th></tr>
+        </thead>
+        <tbody id="txBody"><tr><td colspan="5" class="p-4 text-center text-gray-500">尚無交易</td></tr></tbody>
+      </table>
+    </div>
+    <p class="text-[11px] text-gray-600 mt-2">
+      ※ 本平台為課程 Demo:股價為預言機模擬資料;未連接錢包時交易為前端模擬,連上 Sepolia 後將嘗試真實合約呼叫。
+    </p>
+  </section>
+
+  <footer class="border-t border-line text-center text-xs text-gray-500 py-6">
+    RWA 台股代幣化專題 · tTSMC Demo · 部署於 Vercel
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
