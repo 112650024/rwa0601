@@ -37,6 +37,54 @@ function setSwapLogo(stock) {
   el.innerHTML = `<span>${(stock.name || stock.code).slice(0, 2)}</span>` + logoImg(stock.code);
 }
 
+/* ===== 走勢資料 / sparkline ===== */
+const HIST = {};
+function seedHist(s) { const a = []; let p = s.fallback || 100; for (let i = 0; i < 26; i++) { p = Math.max(1, p * (1 + (Math.random() - 0.5) * 0.012)); a.push(p); } return a; }
+function pushHist() { STOCKS.forEach((s) => { const a = HIST[s.code] || (HIST[s.code] = []); a.push(live[s.code].price); if (a.length > 40) a.shift(); }); }
+function sparklineSVG(code, w = 130, h = 34) {
+  const a = HIST[code]; if (!a || a.length < 2) return "";
+  const mn = Math.min(...a), mx = Math.max(...a), rng = (mx - mn) || 1;
+  const xy = a.map((v, i) => [(i / (a.length - 1)) * w, (h - 3) - ((v - mn) / rng) * (h - 7)]);
+  const line = xy.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  const col = a[a.length - 1] >= a[0] ? "var(--up)" : "var(--down)";
+  return `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">` +
+    `<polyline points="0,${h} ${line} ${w},${h}" fill="${col}" opacity=".10"/>` +
+    `<polyline points="${line}" fill="none" stroke="${col}" stroke-width="1.6"/></svg>`;
+}
+function updateSparks() { document.querySelectorAll("[data-spark]").forEach((el) => (el.innerHTML = sparklineSVG(el.dataset.spark))); }
+
+/* ===== 行情跑馬燈 ===== */
+function tickerItem(s) {
+  return `<span class="tk">${logoHtml(s.code, s.name, 22)}` +
+    `<span class="text-xs text-gray-300">${s.name}</span>` +
+    `<span class="num text-xs" data-price="${s.code}">NT$ ${fmt(live[s.code].price)}</span>` +
+    `<span class="num text-[11px]" data-pct="${s.code}"></span></span>`;
+}
+function renderTicker() { const row = STOCKS.map(tickerItem).join(""); $("ticker").innerHTML = row + row; }
+
+/* ===== 旗艦即時走勢圖 ===== */
+let hero = null;
+const FLAG = () => (DEPLOY?.stocks?.[0]?.code) || "2330";
+function initHero() {
+  const ctx = $("heroChart"); if (!ctx) return;
+  const a = HIST[FLAG()] || [];
+  const g = ctx.getContext("2d").createLinearGradient(0, 0, 0, 120);
+  g.addColorStop(0, "rgba(245,181,68,.35)"); g.addColorStop(1, "rgba(245,181,68,0)");
+  hero = new Chart(ctx, {
+    type: "line",
+    data: { labels: a.map((_, i) => i), datasets: [{ data: a, borderColor: "#F5B544", backgroundColor: g, fill: true, tension: .35, pointRadius: 0, borderWidth: 2 }] },
+    options: { animation: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } } },
+  });
+  updateHero();
+}
+function updateHero() {
+  const f = STOCKS.find((s) => s.code === FLAG());
+  if (f) { const el = $("heroLogo"); if (el) { el.style.background = `linear-gradient(135deg,${tintFor(f.code)})`; el.innerHTML = `<span>${(f.name || f.code).slice(0, 2)}</span>` + logoImg(f.code); } }
+  if (!hero) return;
+  const a = HIST[FLAG()] || [];
+  hero.data.labels = a.map((_, i) => i); hero.data.datasets[0].data = a; hero.update("none");
+}
+
 /* ---------------- 狀態(模擬模式用)---------------- */
 let state = loadState();
 function loadState() {
@@ -56,13 +104,17 @@ async function init() {
              tradable: !!t, token: t?.token || null, tokenSymbol: t?.tokenSymbol || ("t" + s.code) };
   });
   STOCKS.forEach((s) => (live[s.code] = { price: s.fallback, prev: s.fallback, pct: 0, real: false }));
+  STOCKS.forEach((s) => (HIST[s.code] = seedHist(s)));
 
   setModeBadge();
   buildSwapOptions();
+  renderTicker();
   renderMarket();
   renderPortfolio();
   renderTxs();
   updateSwapInfo();
+  initHero();
+  updateSparks();
 
   await refreshPrices();
   setInterval(refreshPrices, 30000);   // 每 30 秒重讀預言機(反映 feeder 更新)
@@ -117,7 +169,8 @@ async function refreshPrices() {
       L.prev = L.price; L.price = Math.max(1, L.price * (1 + d)); L.pct = (L.price / s.fallback - 1) * 100; });
   }
   $("oracleTime").textContent = new Date().toLocaleTimeString("zh-Hant", { hour12: false });
-  paintPrices(); renderPortfolio(); updateSwapInfo();
+  pushHist();
+  paintPrices(); updateSparks(); updateHero(); renderPortfolio(); updateSwapInfo();
 }
 function paintPrices() {
   document.querySelectorAll("[data-price]").forEach((el) => {
@@ -152,7 +205,8 @@ function renderMarket(filter = "") {
         <span data-pct="${s.code}" class="text-xs num"></span>
       </div>
       <div data-price="${s.code}" class="num text-2xl font-bold mt-3">NT$ ${fmt(live[s.code].price)}</div>
-      <button data-buy="${s.code}" class="mt-3 w-full ${s.tradable ? "btn-brand" : "btn-ghost text-gray-300"} font-bold py-2 rounded-xl text-sm">
+      <div data-spark="${s.code}" class="mt-1.5" style="height:34px"></div>
+      <button data-buy="${s.code}" class="mt-2 w-full ${s.tradable ? "btn-brand" : "btn-ghost text-gray-300"} font-bold py-2 rounded-xl text-sm">
         ${s.tradable ? "交易 " + s.tokenSymbol : "查看"}
       </button>
     </div>`).join("");
@@ -160,7 +214,7 @@ function renderMarket(filter = "") {
     $("swapStock").value = b.dataset.buy; updateSwapInfo(); refreshReserve(b.dataset.buy);
     $("swapStock").scrollIntoView({ behavior: "smooth", block: "center" });
   }));
-  paintPrices();
+  paintPrices(); updateSparks();
 }
 
 /* ---------------- 換股下拉 + 報價 ---------------- */

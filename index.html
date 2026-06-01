@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>dStock ｜ RWA 台股代幣化平台</title>
-  <meta name="description" content="RWA 台股上鏈:用 TWD 穩定幣兌換台股代幣,Chainlink 風格預言機即時估值。" />
+  <title>dStock ｜ RWA 台股代幣化交易平台</title>
+  <meta name="description" content="RWA 台股上鏈交易平台:即時行情跑馬燈、走勢圖、用 TWD 兌換台股代幣,Chainlink 風格預言機估值。" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = { theme: { extend: { colors: {
-      brand:"#F5B544", ink:"#1a1205", panel:"#16181d", line:"rgba(255,255,255,.08)" } } } };
+      brand:"#F5B544", ink:"#1a1205", panel:"#161b27", line:"rgba(255,255,255,.08)" } } } };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -21,84 +21,68 @@
   <style>
     :root{
       --brand:#F5B544; --brand2:#ff7a45; --cyan:#37d6c4; --link:#2f6bff;
-      --bg:#07080c; --panel:rgba(20,23,31,.62); --line:rgba(255,255,255,.08);
+      --bg:#0a0d14; --bg2:#0e1119; --panel:#131722; --panel2:#1a2030; --line:#232a3a;
+      --up:#ff5a5a; --down:#46e08a;          /* 台股慣例:漲紅跌綠 */
     }
-    *{ -webkit-tap-highlight-color:transparent; }
+    *{ -webkit-tap-highlight-color:transparent; box-sizing:border-box; }
     html{ scroll-behavior:smooth; }
-    body{
-      background:var(--bg); color:#e9edf4; overflow-x:hidden;
-      font-family:"Space Grotesk","Noto Sans TC",sans-serif;
-    }
+    body{ background:var(--bg); color:#dfe5ee; overflow-x:hidden; font-family:"Space Grotesk","Noto Sans TC",sans-serif; }
     .num{ font-family:"JetBrains Mono",monospace; font-feature-settings:"tnum"; }
-    /* 背景:雙色光暈 + 細網格 */
-    .bg-fx{ position:fixed; inset:0; z-index:-2; }
-    .bg-fx::before{ content:""; position:absolute; inset:0;
+    .bg-fx{ position:fixed; inset:0; z-index:-2;
       background:
-        radial-gradient(60vw 60vw at 12% -8%, rgba(245,181,68,.16), transparent 60%),
-        radial-gradient(55vw 55vw at 100% 110%, rgba(47,107,255,.16), transparent 60%);
-      filter:saturate(120%); }
-    .grid-fx{ position:fixed; inset:0; z-index:-1; opacity:.35;
-      background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
-                       linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
-      background-size:46px 46px; mask-image:radial-gradient(circle at 50% 30%,#000 30%,transparent 80%); }
-    /* 玻璃卡 */
-    .glass{ background:var(--panel); border:1px solid var(--line);
-      backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
-      box-shadow:0 1px 0 rgba(255,255,255,.05) inset, 0 18px 40px -24px rgba(0,0,0,.8); }
-    .glass:hover{ border-color:rgba(245,181,68,.25); }
-    .lift{ transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
-    .lift:hover{ transform:translateY(-3px); }
-    /* 主按鈕 */
+        radial-gradient(50vw 50vw at 8% -10%, rgba(245,181,68,.10), transparent 60%),
+        radial-gradient(50vw 50vw at 100% 0%, rgba(47,107,255,.12), transparent 55%),
+        var(--bg); }
+    .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; }
+    .panel:hover{ border-color:rgba(245,181,68,.22); }
+    .lift{ transition:transform .16s ease, border-color .16s ease; } .lift:hover{ transform:translateY(-2px); }
     .btn-brand{ background:linear-gradient(135deg,var(--brand),var(--brand2)); color:#1a1205; font-weight:700;
-      box-shadow:0 8px 24px -10px rgba(245,181,68,.7); transition:transform .15s, filter .15s, box-shadow .15s; }
-    .btn-brand:hover{ filter:brightness(1.05); transform:translateY(-1px); }
-    .btn-brand:active{ transform:translateY(0); }
-    .btn-ghost{ border:1px solid var(--line); transition:background .15s,border-color .15s; }
-    .btn-ghost:hover{ background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.2); }
-    /* 連錢包按鈕 + spinner */
-    .connect-btn{ display:inline-flex; align-items:center; gap:.5rem; transition:all .25s ease; }
-    .spinner{ width:14px;height:14px;border:2px solid rgba(26,18,5,.35);border-top-color:#1a1205;border-radius:50%;
-      animation:spin .7s linear infinite; }
-    @keyframes spin{ to{ transform:rotate(360deg);} }
-    .dot-live{ width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 0 rgba(55,214,196,.6);
-      animation:ping 1.8s infinite; }
-    @keyframes ping{ 0%{box-shadow:0 0 0 0 rgba(55,214,196,.5)} 70%{box-shadow:0 0 0 7px rgba(55,214,196,0)} 100%{box-shadow:0 0 0 0 rgba(55,214,196,0)} }
-    /* 預言機 chip */
-    .chip{ display:inline-flex; align-items:center; gap:.4rem; padding:.15rem .55rem; border-radius:999px;
-      background:rgba(47,107,255,.12); border:1px solid rgba(47,107,255,.35); }
+      box-shadow:0 8px 22px -12px rgba(245,181,68,.8); transition:transform .14s,filter .14s; }
+    .btn-brand:hover{ filter:brightness(1.06); transform:translateY(-1px); } .btn-brand:active{ transform:none; }
+    .btn-ghost{ border:1px solid var(--line); background:var(--panel2); transition:.14s; }
+    .btn-ghost:hover{ border-color:rgba(255,255,255,.22); }
+    .fld{ background:var(--bg2); border:1px solid var(--line); border-radius:10px; transition:.14s; color:#dfe5ee; }
+    .fld:focus{ outline:none; border-color:var(--brand); box-shadow:0 0 0 3px rgba(245,181,68,.14); }
+    .up{ color:var(--up);} .down{ color:var(--down);}
+    .ico{ width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+    /* 連錢包 */
+    .connect-btn{ display:inline-flex; align-items:center; gap:.5rem; transition:.25s; }
+    .spinner{ width:14px;height:14px;border:2px solid rgba(26,18,5,.35);border-top-color:#1a1205;border-radius:50%;animation:spin .7s linear infinite;}
+    @keyframes spin{ to{transform:rotate(360deg);} }
+    .dot-live{ width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:ping 1.8s infinite;}
+    @keyframes ping{ 0%{box-shadow:0 0 0 0 rgba(55,214,196,.5)}70%{box-shadow:0 0 0 7px rgba(55,214,196,0)}100%{box-shadow:0 0 0 0 rgba(55,214,196,0)} }
+    .chip{ display:inline-flex;align-items:center;gap:.4rem;padding:.15rem .55rem;border-radius:999px;background:rgba(47,107,255,.12);border:1px solid rgba(47,107,255,.35);}
     /* logo tile */
-    .logo{ position:relative; width:40px;height:40px;border-radius:11px; overflow:hidden; flex:none;
-      display:grid; place-items:center; font-weight:700; color:#fff; font-family:"JetBrains Mono",monospace; font-size:12px;
-      box-shadow:0 2px 8px -2px rgba(0,0,0,.6) inset, 0 0 0 1px var(--line); }
-    .logo img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; padding:5px; }
+    .logo{ position:relative;border-radius:10px;overflow:hidden;flex:none;display:grid;place-items:center;font-weight:700;color:#fff;font-family:"JetBrains Mono",monospace;font-size:12px;box-shadow:inset 0 0 0 1px var(--line);}
+    .logo img{ position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;padding:4px;}
+    /* ===== 跑馬燈 ===== */
+    .ticker-wrap{ overflow:hidden; background:var(--bg2); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .ticker{ display:inline-flex; align-items:center; white-space:nowrap; will-change:transform; animation:scroll 60s linear infinite; }
+    .ticker-wrap:hover .ticker{ animation-play-state:paused; }
+    @keyframes scroll{ from{transform:translateX(0)} to{transform:translateX(-50%)} }
+    .tk{ display:inline-flex; align-items:center; gap:.5rem; padding:.55rem 1.1rem; border-right:1px solid var(--line); }
+    .tk .logo{ width:22px;height:22px;font-size:9px;border-radius:6px; }
     /* 價格閃動 */
-    .flash-up{ animation:fu .8s ease; } .flash-down{ animation:fd .8s ease; }
-    @keyframes fu{ 0%{color:#ff6a6a;text-shadow:0 0 12px rgba(255,90,90,.6)} 100%{} }
-    @keyframes fd{ 0%{color:#46e08a;text-shadow:0 0 12px rgba(70,224,138,.6)} 100%{} }
-    .up{ color:#ff6a6a; } .down{ color:#46e08a; }
-    /* inputs */
-    .fld{ background:rgba(8,10,15,.7); border:1px solid var(--line); border-radius:11px; transition:border-color .15s, box-shadow .15s; }
-    .fld:focus{ outline:none; border-color:var(--brand); box-shadow:0 0 0 3px rgba(245,181,68,.15); }
-    .reveal-up{ animation:ru .5s ease both; } @keyframes ru{ from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
-    ::-webkit-scrollbar{width:10px;height:10px}
-    ::-webkit-scrollbar-thumb{background:#23262e;border-radius:8px}
-    .ico{ width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round; }
+    .flash-up{ animation:fu .8s ease;} .flash-down{ animation:fd .8s ease;}
+    @keyframes fu{0%{color:var(--up);text-shadow:0 0 12px rgba(255,90,90,.7)}100%{}}
+    @keyframes fd{0%{color:var(--down);text-shadow:0 0 12px rgba(70,224,138,.7)}100%{}}
+    .reveal-up{ animation:ru .5s ease both;} @keyframes ru{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    ::-webkit-scrollbar{width:10px;height:10px} ::-webkit-scrollbar-thumb{background:#222838;border-radius:8px}
   </style>
 </head>
 
 <body class="min-h-screen">
-  <div class="bg-fx"></div><div class="grid-fx"></div>
+  <div class="bg-fx"></div>
 
   <!-- ============ 頂部導覽 ============ -->
   <header class="sticky top-0 z-30">
-    <div class="backdrop-blur-xl bg-black/40 border-b border-white/5">
-      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+    <div class="backdrop-blur-xl" style="background:rgba(10,13,20,.82); border-bottom:1px solid var(--line)">
+      <div class="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
         <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl grid place-items-center font-extrabold text-lg"
-               style="background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1205;box-shadow:0 6px 18px -8px rgba(245,181,68,.8)">d</div>
+          <div class="w-9 h-9 rounded-xl grid place-items-center font-extrabold text-lg" style="background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1205">d</div>
           <div>
-            <div class="font-bold leading-tight tracking-wide">dStock<span class="text-brand" style="color:var(--brand)"> RWA</span></div>
-            <div class="text-[11px] text-gray-400 leading-tight">台股代幣化平台</div>
+            <div class="font-bold leading-tight tracking-wide">dStock<span style="color:var(--brand)"> RWA</span></div>
+            <div class="text-[11px] text-gray-400 leading-tight">台股代幣化交易平台</div>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -111,63 +95,73 @@
         </div>
       </div>
       <!-- 預言機狀態列 -->
-      <div class="border-t border-white/5">
+      <div style="border-top:1px solid var(--line)">
         <div class="max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-2 text-[12px] text-gray-400 flex-wrap">
-          <span class="chip"><img src="https://cdn.simpleicons.org/chainlink/2f6bff" alt="Chainlink" style="width:13px;height:13px" /><span class="text-[11px]" style="color:#9db4ff">Chainlink</span></span>
+          <span class="chip"><img src="https://cdn.simpleicons.org/chainlink/2f6bff" alt="Chainlink" style="width:13px;height:13px"/><span class="text-[11px]" style="color:#9db4ff">Chainlink</span></span>
           <span id="oracleName" class="text-gray-200">載入中…</span>
-          <span class="text-gray-600">·</span><span class="dot-live"></span>更新
-          <span id="oracleTime" class="num text-gray-200">--:--:--</span>
+          <span class="text-gray-600">·</span><span class="dot-live"></span>更新 <span id="oracleTime" class="num text-gray-200">--:--:--</span>
           <span id="oracleSrc" class="ml-auto hidden sm:inline text-gray-500"></span>
         </div>
       </div>
     </div>
+    <!-- ===== 行情跑馬燈 ===== -->
+    <div class="ticker-wrap"><div id="ticker" class="ticker"></div></div>
   </header>
 
-  <!-- ============ Hero ============ -->
-  <section class="max-w-6xl mx-auto px-4 pt-9 pb-3 reveal-up">
-    <div class="inline-flex items-center gap-2 text-[11px] text-gray-400 mb-3 px-3 py-1 rounded-full border border-white/10">
-      <span class="dot-live"></span> Real World Asset · On-chain · Sepolia
+  <!-- ============ Hero:標語 + 即時走勢圖 ============ -->
+  <section class="max-w-6xl mx-auto px-4 pt-7 pb-3 grid md:grid-cols-2 gap-4 items-center reveal-up">
+    <div>
+      <div class="inline-flex items-center gap-2 text-[11px] text-gray-400 mb-3 px-3 py-1 rounded-full border border-white/10">
+        <span class="dot-live"></span> Real World Asset · On-chain · Sepolia
+      </div>
+      <h1 class="text-3xl sm:text-[2.4rem] font-bold leading-tight tracking-tight">
+        把<span style="color:var(--brand)">台股</span>變成 24/7<br class="hidden sm:block"/>可碎片化的鏈上資產
+      </h1>
+      <p class="text-gray-400 text-sm mt-3 max-w-md">用 <b class="text-gray-200">TWD</b> 穩定幣一鍵兌換台股代幣,預言機即時估值、鏈上 1:1 實股擔保。</p>
     </div>
-    <h1 class="text-3xl sm:text-[2.6rem] font-bold leading-tight tracking-tight">
-      把<span style="color:var(--brand)">台股</span>變成 24/7、可碎片化的<br class="hidden sm:block" />鏈上資產
-    </h1>
-    <p class="text-gray-400 text-sm mt-3 max-w-2xl">
-      用平台穩定幣 <b class="text-gray-200">TWD</b> 一鍵兌換台股代幣,預言機即時估值、鏈上 1:1 實股擔保。小額即可參與、跨境免開戶。
-    </p>
+    <!-- 旗艦走勢卡 -->
+    <div class="panel p-4">
+      <div class="flex items-center gap-3">
+        <div id="heroLogo" class="logo" style="width:40px;height:40px;background:linear-gradient(135deg,#ff5a5a,#a01b1b)">台</div>
+        <div class="flex-1">
+          <div class="font-bold">台積電 <span class="text-gray-500 text-xs num">2330</span></div>
+          <div class="text-[11px] num" style="color:var(--brand)">dTSMC · 旗艦標的</div>
+        </div>
+        <div class="text-right">
+          <div data-price="2330" class="num text-2xl font-bold">NT$ —</div>
+          <div data-pct="2330" class="num text-xs"></div>
+        </div>
+      </div>
+      <div class="mt-3"><canvas id="heroChart" height="120"></canvas></div>
+    </div>
   </section>
 
   <!-- ============ 投組總覽 ============ -->
-  <section class="max-w-6xl mx-auto px-4 grid md:grid-cols-3 gap-3">
-    <div class="glass lift rounded-2xl p-5 md:col-span-2">
+  <section class="max-w-6xl mx-auto px-4 grid md:grid-cols-3 gap-3 mt-2">
+    <div class="panel lift p-5 md:col-span-2">
       <div class="flex items-center justify-between">
-        <div>
-          <div class="text-xs text-gray-400 tracking-wide">投組總價值 · 預言機估值</div>
-          <div id="totalValue" class="num text-[2rem] font-bold mt-1">NT$ 0</div>
-        </div>
-        <div class="text-right text-sm">
-          <div class="text-gray-400 text-xs">TWD 餘額</div>
-          <div id="twdBal" class="num font-bold text-lg">0</div>
-        </div>
+        <div><div class="text-xs text-gray-400 tracking-wide">投組總價值 · 預言機估值</div>
+          <div id="totalValue" class="num text-[2rem] font-bold mt-1">NT$ 0</div></div>
+        <div class="text-right text-sm"><div class="text-gray-400 text-xs">TWD 餘額</div>
+          <div id="twdBal" class="num font-bold text-lg">0</div></div>
       </div>
       <div id="holdingsList" class="mt-4 space-y-2 text-sm"></div>
     </div>
-    <div class="glass rounded-2xl p-5 grid place-items-center">
+    <div class="panel p-5 grid place-items-center">
       <div class="text-xs text-gray-400 self-start tracking-wide">資產配置</div>
       <canvas id="pie" width="220" height="220"></canvas>
     </div>
   </section>
 
-  <!-- ============ 操作區:領 TWD / 換股 ============ -->
+  <!-- ============ 操作區 ============ -->
   <section class="max-w-6xl mx-auto px-4 mt-3 grid md:grid-cols-2 gap-3">
-    <!-- 領 TWD -->
-    <div class="glass lift rounded-2xl p-5">
+    <div class="panel lift p-5">
       <h2 class="font-bold flex items-center gap-2">
         <svg class="ico" viewBox="0 0 24 24" style="color:var(--cyan)"><path d="M12 3s6 6.5 6 10a6 6 0 0 1-12 0c0-3.5 6-10 6-10z"/></svg>
-        領取 TWD 穩定幣 <span class="text-[11px] text-gray-500">水龍頭 · Demo</span>
-      </h2>
+        領取 TWD 穩定幣 <span class="text-[11px] text-gray-500">水龍頭 · Demo</span></h2>
       <p class="text-xs text-gray-400 mt-1">先領一筆 TWD,才能購買台股代幣。</p>
       <div class="flex gap-2 mt-3">
-        <input id="faucetAmt" type="number" value="100000" min="1" class="fld num flex-1 px-3 py-2.5 text-sm" />
+        <input id="faucetAmt" type="number" value="100000" min="1" class="fld num flex-1 px-3 py-2.5 text-sm"/>
         <button id="faucetBtn" class="btn-brand px-5 py-2.5 rounded-xl text-sm">領取</button>
       </div>
       <div class="flex gap-2 mt-2 text-xs">
@@ -176,30 +170,21 @@
         <button class="quick-twd btn-ghost px-2.5 py-1 rounded-lg text-gray-300" data-v="500000">+50萬</button>
       </div>
     </div>
-
-    <!-- 換股 -->
-    <div class="glass lift rounded-2xl p-5">
+    <div class="panel lift p-5">
       <h2 class="font-bold flex items-center gap-2">
         <svg class="ico" viewBox="0 0 24 24" style="color:var(--brand)"><path d="M7 10h11l-3-3M17 14H6l3 3"/></svg>
-        兌換台股代幣
-      </h2>
+        兌換台股代幣</h2>
       <div class="mt-3 flex items-center gap-3">
-        <div id="swapLogo" class="logo" style="background:linear-gradient(135deg,#2a2f3a,#161a22)">--</div>
+        <div id="swapLogo" class="logo" style="width:40px;height:40px;background:linear-gradient(135deg,#2a2f3a,#161a22)">--</div>
         <div class="grid grid-cols-2 gap-2 flex-1">
-          <div>
-            <label class="text-xs text-gray-400">標的</label>
-            <select id="swapStock" class="fld w-full px-2 py-2 text-sm mt-1"></select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-400">股數</label>
-            <input id="swapShares" type="number" value="10" min="0" step="1" class="fld num w-full px-3 py-2 text-sm mt-1" />
-          </div>
+          <div><label class="text-xs text-gray-400">標的</label><select id="swapStock" class="fld w-full px-2 py-2 text-sm mt-1"></select></div>
+          <div><label class="text-xs text-gray-400">股數</label><input id="swapShares" type="number" value="10" min="0" step="1" class="fld num w-full px-3 py-2 text-sm mt-1"/></div>
         </div>
       </div>
       <div class="text-xs text-gray-400 mt-3 space-y-1">
         <div class="flex justify-between"><span>單價(預言機)</span><span id="swapPrice" class="num text-gray-200">—</span></div>
         <div class="flex justify-between"><span>手續費</span><span id="swapFee" class="num text-gray-200">—</span></div>
-        <div class="flex justify-between font-bold text-sm border-t border-white/10 pt-1.5 mt-1">
+        <div class="flex justify-between font-bold text-sm pt-1.5 mt-1" style="border-top:1px solid var(--line)">
           <span class="text-gray-300">需付 / 可得</span><span id="swapTotal" class="num" style="color:var(--brand)">—</span></div>
       </div>
       <div class="grid grid-cols-2 gap-2 mt-3">
@@ -211,12 +196,11 @@
 
   <!-- ============ 儲備證明 ============ -->
   <section class="max-w-6xl mx-auto px-4 mt-3">
-    <div class="glass rounded-2xl p-5">
+    <div class="panel p-5">
       <div class="flex items-center justify-between">
         <h2 class="font-bold flex items-center gap-2">
           <svg class="ico" viewBox="0 0 24 24" style="color:var(--cyan)"><path d="M12 3l7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
-          儲備證明 <span class="text-[11px] text-gray-500">Proof of Reserve</span>
-        </h2>
+          儲備證明 <span class="text-[11px] text-gray-500">Proof of Reserve</span></h2>
         <span id="ratioBadge" class="text-xs px-2.5 py-1 rounded-full border border-white/10 text-gray-400">未連線</span>
       </div>
       <div class="grid grid-cols-3 gap-3 mt-4 text-center text-sm">
@@ -228,13 +212,13 @@
     </div>
   </section>
 
-  <!-- ============ 台股市場 + 搜尋 ============ -->
+  <!-- ============ 台股市場 ============ -->
   <section class="max-w-6xl mx-auto px-4 mt-7">
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <h2 class="font-bold text-lg tracking-wide">台股市場</h2>
       <div class="relative flex-1 max-w-sm">
         <svg class="ico absolute left-3 top-2.5 text-gray-500" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input id="search" placeholder="搜尋股票(代號 / 名稱,如 2330、鴻海)" class="fld w-full pl-9 pr-3 py-2.5 text-sm" />
+        <input id="search" placeholder="搜尋股票(代號 / 名稱,如 2330、鴻海)" class="fld w-full pl-9 pr-3 py-2.5 text-sm"/>
       </div>
     </div>
     <div id="market" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3"></div>
@@ -244,9 +228,9 @@
   <!-- ============ 交易紀錄 ============ -->
   <section class="max-w-6xl mx-auto px-4 mt-7 mb-12">
     <h2 class="font-bold text-lg tracking-wide">交易紀錄 <span class="text-[11px] text-gray-500">鏈上透明 · 可查驗</span></h2>
-    <div class="glass rounded-2xl mt-3 overflow-hidden">
+    <div class="panel mt-3 overflow-hidden">
       <table class="w-full text-sm">
-        <thead class="text-gray-400 text-xs" style="background:rgba(255,255,255,.03)">
+        <thead class="text-gray-400 text-xs" style="background:var(--panel2)">
           <tr><th class="text-left p-3 font-medium">時間</th><th class="text-left p-3 font-medium">動作</th>
               <th class="text-right p-3 font-medium">數量</th><th class="text-right p-3 font-medium hidden sm:table-cell">金額(TWD)</th>
               <th class="text-right p-3 font-medium">憑證</th></tr>
@@ -257,7 +241,7 @@
     <p class="text-[11px] text-gray-600 mt-2">※ 課程 Demo:股價由預言機(Chainlink 風格)餵入;未連錢包時為前端模擬,連上 Sepolia 後為真實鏈上交易。</p>
   </section>
 
-  <footer class="border-t border-white/5 text-center text-xs text-gray-500 py-6">
+  <footer class="text-center text-xs text-gray-500 py-6" style="border-top:1px solid var(--line)">
     dStock · RWA 台股代幣化 · Powered by Chainlink-style Oracle · 部署於 Vercel
   </footer>
 
