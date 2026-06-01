@@ -66,16 +66,28 @@ const FEES = { mint: 0.003, redeem: 0.003 };
 
 /* 公司官網網域 → 用來抓品牌 logo(Clearbit);抓不到時前端自動退回字母色塊 */
 const LOGO_DOMAIN = {
-  "2330": "tsmc.com",        "2317": "honhai.com",      "2454": "mediatek.com",
-  "2308": "deltaww.com",     "2303": "umc.com",         "2412": "cht.com.tw",
-  "2882": "cathayholdings.com","2881": "fubon.com",      "2603": "evergreen-marine.com",
-  "3008": "largan.com.tw",   "2891": "ctbcbank.com",    "2002": "csc.com.tw",
-  "3037": "unimicron.com",   "2357": "asus.com",        "2382": "quantatw.com",
-  "3231": "wistron.com",     "2379": "realtek.com",     "1303": "npc.com.tw",
-  "1301": "fpc.com.tw",      "2886": "megaholdings.com.tw","2884": "esunbank.com.tw",
-  "2609": "yangming.com",    "2615": "wanhai.com",      "2207": "hotaimotor.com.tw",
+  "2330": "tsmc.com",        "2317": "foxconn.com",       "2454": "mediatek.com",
+  "2308": "deltaww.com",     "2303": "umc.com",           "2412": "cht.com.tw",
+  "2882": "cathayholdings.com.tw","2881": "fubon.com",    "2603": "evergreen-marine.com",
+  "3008": "largan.com.tw",   "2891": "ctbcbank.com",      "2002": "csc.com.tw",
+  "3037": "unimicron.com",   "2357": "asus.com",          "2382": "quantatw.com",
+  "3231": "wistron.com",     "2379": "realtek.com",       "1303": "npc.com.tw",
+  "1301": "fpc.com.tw",      "2886": "megabank.com.tw",   "2884": "esunbank.com.tw",
+  "2609": "yangming.com",    "2615": "wanhai.com",        "2207": "hotaimotor.com.tw",
   "2912": "7-11.com.tw",
 };
-/* 每檔的色塊漸層(logo 抓不到時的底色),用代號雜湊挑色 */
+/* 各公司「品牌色」漸層 —— 抓不到真 logo 時,字母牌也是該公司代表色,看起來是設計過的 */
+const BRAND_TINT = {
+  "2330":"#e4002b,#8c0019", "2317":"#0a4ea2,#062f63", "2454":"#ff7a00,#b35400",
+  "2308":"#0072ce,#004a87", "2303":"#00a3a3,#006060", "2412":"#00857c,#004f49",
+  "2882":"#0c8a3e,#064d22", "2881":"#5aa800,#356200", "2603":"#0a7a3f,#054d27",
+  "3008":"#5b6bff,#2f3aa8", "0050":"#e2231a,#8f140e", "2891":"#0033a0,#001f63",
+  "2002":"#3a6ea5,#22415e", "3037":"#a05bd6,#5f2f8a", "2357":"#1f2a44,#0c1322",
+  "2382":"#2f6bff,#173a8f", "3231":"#1565c0,#0c3d75", "2379":"#16a34a,#0b6e30",
+  "1303":"#8a5a2b,#54371a", "1301":"#9a6a33,#5e4020", "2886":"#0a6b3b,#064723",
+  "2884":"#1f8a52,#125731", "2609":"#0d63b0,#073f72", "2615":"#0a8f8f,#055757",
+  "2207":"#e2231a,#8f140e", "2912":"#ff7a00,#b35400",
+};
+/* 其他冷門股的後備色盤(代號雜湊挑色) */
 const LOGO_TINT = ["#2f6bff,#1b3a8f","#F5B544,#b8761a","#37d6c4,#1f7a70","#ff7a45,#a83c14",
   "#a77bff,#5b3aa8","#ff6f91,#a83a55","#46e08a,#1f8a52","#7aa6ff,#3a5bb0"];

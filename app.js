@@ -21,12 +21,15 @@ const canTx = () => !!(signer && chainOk && DEPLOY);
 const tokenInfo = (code) => DEPLOY?.stocks?.find((x) => x.code === code) || null;
 
 /* 品牌 logo:Clearbit → Google favicon → 字母色塊(三層退回,確保有東西顯示) */
-function tintFor(code) { let h = 0; for (const c of code) h = (h * 31 + c.charCodeAt(0)) >>> 0; return LOGO_TINT[h % LOGO_TINT.length]; }
+function tintFor(code) {
+  if (typeof BRAND_TINT !== "undefined" && BRAND_TINT[code]) return BRAND_TINT[code];
+  let h = 0; for (const c of code) h = (h * 31 + c.charCodeAt(0)) >>> 0; return LOGO_TINT[h % LOGO_TINT.length];
+}
 function logoImg(code) {
   const dom = LOGO_DOMAIN[code]; if (!dom) return "";
-  const gf = `https://www.google.com/s2/favicons?sz=64&domain=${dom}`;
-  return `<img loading="lazy" src="https://logo.clearbit.com/${dom}?size=80" ` +
-    `onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${gf}'}else{this.remove()}">`;
+  const g = `https://www.google.com/s2/favicons?sz=128&domain=${dom}`;
+  const dd = `https://icons.duckduckgo.com/ip3/${dom}.ico`;
+  return `<img loading="lazy" alt="" src="${g}" onerror="if(this.src.indexOf('duckduckgo')<0){this.src='${dd}'}else{this.remove()}">`;
 }
 function logoHtml(code, name, size = 40) {
   return `<div class="logo" style="width:${size}px;height:${size}px;background:linear-gradient(135deg,${tintFor(code)})"><span>${(name || code).slice(0, 2)}</span>${logoImg(code)}</div>`;
