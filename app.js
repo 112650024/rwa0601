@@ -55,10 +55,10 @@ function updateSparks() { document.querySelectorAll("[data-spark]").forEach((el)
 
 /* ===== 行情跑馬燈 ===== */
 function tickerItem(s) {
-  return `<span class="tk">${logoHtml(s.code, s.name, 22)}` +
-    `<span class="text-xs text-gray-300">${s.name}</span>` +
-    `<span class="num text-xs" data-price="${s.code}">NT$ ${fmt(live[s.code].price)}</span>` +
-    `<span class="num text-[11px]" data-pct="${s.code}"></span></span>`;
+  return `<span class="tk">${logoHtml(s.code, s.name, 30)}` +
+    `<span class="text-sm text-gray-200 font-medium">${s.name}</span>` +
+    `<span class="num text-sm" data-price="${s.code}">NT$ ${fmt(live[s.code].price)}</span>` +
+    `<span class="num text-xs" data-pct="${s.code}"></span></span>`;
 }
 function renderTicker() { const row = STOCKS.map(tickerItem).join(""); $("ticker").innerHTML = row + row; }
 
@@ -265,8 +265,9 @@ function drawPie(rows) {
   const data   = [state.twd, ...rows.map(([c, sh]) => sh * (live[c]?.price || 0))];
   const colors = ["#3a3d45", "#F5B544", "#ff8a5a", "#5ad1c4", "#7aa6ff", "#c98aff", "#ff6f91", "#9ad15a"];
   const cfg = { type: "doughnut",
-    data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: "#16181d", borderWidth: 2 }] },
-    options: { plugins: { legend: { labels: { color: "#cbd0d8", font: { size: 11 } }, position: "bottom" } }, cutout: "62%" } };
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: "#131722", borderWidth: 2 }] },
+    options: { responsive: false, plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: (c) => c.label } } }, cutout: "66%" } };
   if (pie) { pie.data = cfg.data; pie.update(); } else pie = new Chart($("pie"), cfg);
 }
 
