@@ -1,0 +1,81 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "twd": "0x663D7F7fB21dDf533D6bCcBCC1F1084d4D6613A8",
+  "oracle": "0x8a6Db273e67D820176EF0aa3F8ea33157F78bB84",
+  "factory": "0x231DdCB741591badb19AE9eA132fdF9d6F737341",
+  "stocks": [
+    {
+      "code": "2330",
+      "name": "Digitized TSMC",
+      "tokenSymbol": "dTSMC",
+      "token": "0x9338b22543331d25B59Ee4AB75332d576c7e8684"
+    },
+    {
+      "code": "2317",
+      "name": "Digitized Hon Hai",
+      "tokenSymbol": "dHHPG",
+      "token": "0xFE604228142B8215728B5b318312c71EE514e796"
+    },
+    {
+      "code": "2454",
+      "name": "Digitized MediaTek",
+      "tokenSymbol": "dMTK",
+      "token": "0xcbfe7C75f6A9Ee4BEf8af438F28ca4b36e5Df83A"
+    },
+    {
+      "code": "2308",
+      "name": "Digitized Delta",
+      "tokenSymbol": "dDLT",
+      "token": "0x2079C0BbAFadc63C4CE504De9bd1736c1f9D5Cbd"
+    },
+    {
+      "code": "2303",
+      "name": "Digitized UMC",
+      "tokenSymbol": "dUMC",
+      "token": "0xE37171B0d1Fc68345d087B30209a8518A9Ed88Bd"
+    },
+    {
+      "code": "2412",
+      "name": "Digitized Chunghwa",
+      "tokenSymbol": "dCHT",
+      "token": "0x09b1776B89bcb5E5E621C6bcC41c163c5f832866"
+    },
+    {
+      "code": "2882",
+      "name": "Digitized Cathay FH",
+      "tokenSymbol": "dCAT",
+      "token": "0xf75Db0BcdCf6De56609EeD828e38486E3e11d677"
+    },
+    {
+      "code": "2881",
+      "name": "Digitized Fubon FH",
+      "tokenSymbol": "dFBN",
+      "token": "0x3359Ec305B1Ee6cDf992a9633b677Dc536A157D5"
+    },
+    {
+      "code": "2603",
+      "name": "Digitized Evergreen",
+      "tokenSymbol": "dEVG",
+      "token": "0xCf810f338BF25c06bb3Ab78e03E59435ecaEAbEB"
+    },
+    {
+      "code": "3008",
+      "name": "Digitized Largan",
+      "tokenSymbol": "dLAR",
+      "token": "0xE65A6978E9c01D7E9666Cc9653539b78830e350C"
+    },
+    {
+      "code": "0050",
+      "name": "Digitized Yuanta50",
+      "tokenSymbol": "d0050",
+      "token": "0x67F21FDE7A2Fb61021A9f9c4c20527219A676a6e"
+    },
+    {
+      "code": "2891",
+      "name": "Digitized CTBC FH",
+      "tokenSymbol": "dCTBC",
+      "token": "0xB1891017C9CDc50FF0a43C326886A5F323f0cE36"
+    }
+  ]
+}
